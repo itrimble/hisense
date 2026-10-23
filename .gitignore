@@ -1,0 +1,11 @@
+build/
+libs/*.jar
+*.apk
+*.idsig
+*.keystore
+*.jks
+.env*
+private-feeds.json
+.DS_Store
+__pycache__/
+*.pyc

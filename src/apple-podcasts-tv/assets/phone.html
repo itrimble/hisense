@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Type on TV</title>
+<style>
+  :root { --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #6e6e73; --accent: #8a2be2; --line: #d1d1d6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #98989f; --accent: #bf5af2; --line: #38383a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 16px; background: var(--bg); color: var(--text);
+         font: 17px -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { color: var(--muted); margin: 0 0 16px; font-size: 15px; }
+  .card { background: var(--card); border-radius: 14px; padding: 14px; }
+  input[type=text], input[type=password] { width: 100%; font-size: 20px; padding: 12px; border-radius: 10px;
+         border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  label { display: flex; gap: 8px; align-items: center; margin: 12px 0; color: var(--muted); font-size: 15px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  button { font: inherit; padding: 13px; border-radius: 10px; border: 0; background: var(--line); color: var(--text); }
+  button.primary { background: var(--accent); color: #fff; grid-column: span 2; font-weight: 600; }
+  #status { min-height: 22px; margin-top: 14px; color: var(--muted); font-size: 15px; text-align: center; }
+</style>
+</head>
+<body>
+  <h1>Type on TV</h1>
+  <p>What you send goes into the sign-in box on the TV, or into the box you picked with the remote.</p>
+  <div class="card">
+    <input id="t" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+           placeholder="Text to type on the TV" aria-label="Text to type on the TV">
+    <label><input id="hide" type="checkbox"> Hide what I type (for passwords)</label>
+    <div class="row">
+      <button class="primary" id="sendEnter">Send + Enter</button>
+      <button id="send">Send</button>
+      <button id="tab">Next field</button>
+      <button id="bs">Delete</button>
+      <button id="enter">Enter</button>
+    </div>
+  </div>
+  <div id="status" role="status"></div>
+<script>
+  const t = document.getElementById('t'), status = document.getElementById('status');
+  const base = location.pathname;
+  function show(msg) { status.textContent = msg; }
+  async function post(path, body) {
+    try {
+      const r = await fetch(base + path, { method: 'POST', body: body || '' });
+      if (!r.ok) throw new Error(r.status);
+      return true;
+    } catch (e) {
+      show('The TV stopped listening. Open the QR code on the TV again.');
+      return false;
+    }
+  }
+  async function send(withEnter) {
+    if (t.value && !(await post('/type', t.value))) return;
+    if (withEnter && !(await post('/key/enter'))) return;
+    show(withEnter ? 'Sent with Enter.' : 'Sent.');
+    t.value = '';
+    t.focus();
+  }
+  document.getElementById('send').onclick = () => send(false);
+  document.getElementById('sendEnter').onclick = () => send(true);
+  document.getElementById('tab').onclick = async () => { if (await post('/key/tab')) show('Moved to the next field.'); };
+  document.getElementById('bs').onclick = async () => { if (await post('/key/backspace')) show('Deleted one character.'); };
+  document.getElementById('enter').onclick = async () => { if (await post('/key/enter')) show('Pressed Enter.'); };
+  document.getElementById('hide').onchange = e => { t.type = e.target.checked ? 'password' : 'text'; t.focus(); };
+  t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(true); } });
+</script>
+</body>
+</html>
